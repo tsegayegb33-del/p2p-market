@@ -158,6 +158,47 @@
             if (confirm(`Do you want to buy ${amount} USDT for ${fiatTotal} ETB?`)) {
                 alert(`Order initiated for Ad ${adId}. Next step: Seller locks USDT into escrow.`);
                 // Here is where you would trigger the ethers.js smart contract lock function!
+                async function buyAd(adId, amount, price) {
+    const fiatTotal = amount * price;
+    if (!confirm(`Buy ${amount} USDT for ${fiatTotal} ETB?`)) return;
+
+    try {
+        // Connect to user's wallet (e.g., MetaMask)
+        if (!window.ethereum) {
+            alert("Please install MetaMask or a Web3 wallet!");
+            return;
+        }
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        
+        const contractAddress = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+        const usdtTokenAddress = "TESTNET_USDT_TOKEN_ADDRESS"; // e.g., Mock USDT on testnet
+        
+        // ABI for lockFunds function
+        const abi = [
+            "function lockFunds(bytes32 tradeId, address tokenAddress, address buyer, uint256 amount) external"
+        ];
+        
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+        
+        // Generate a unique trade ID
+        const tradeId = ethers.utils.id(adId + "-" + Date.now());
+        const parsedAmount = ethers.utils.parseUnits(amount.toString(), 6); // USDT has 6 decimals
+
+        alert("Please approve and confirm locking USDT in escrow...");
+        
+        // Note: Seller must first approve the contract to spend USDT, then call lockFunds
+        const tx = await contract.lockFunds(tradeId, usdtTokenAddress, await signer.getAddress(), parsedAmount);
+        await tx.wait();
+
+        alert("USDT successfully locked in escrow! Order is now active.");
+        
+    } catch (err) {
+        console.error(err);
+        alert("Transaction failed: " + err.message);
+    }
+}
             }
         }
     </script>
